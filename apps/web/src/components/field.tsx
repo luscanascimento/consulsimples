@@ -1,12 +1,14 @@
+// `| undefined` explícito em cada opcional: com exactOptionalPropertyTypes, `error?: string`
+// recusaria `state.fieldErrors?.password`, que é exatamente como o chamador passa o erro.
 type Props = {
   name: string;
   label: string;
-  type?: string;
-  error?: string;
-  hint?: string;
-  defaultValue?: string | number;
-  required?: boolean;
-  autoComplete?: string;
+  type?: string | undefined;
+  error?: string | undefined;
+  hint?: string | undefined;
+  defaultValue?: string | number | undefined;
+  required?: boolean | undefined;
+  autoComplete?: string | undefined;
 };
 
 export function Field({ name, label, type = "text", error, hint, defaultValue, required, autoComplete }: Props) {
