@@ -23,6 +23,12 @@ export class AuthRepository {
     return this.prisma.user.findUnique({ where: { email }, include: { tenant: true } });
   }
 
+  // Busca sem escopo de tenant: usada só no refresh, onde o tenant ainda vai ser
+  // resolvido a partir do próprio usuário. Não usar em rota de recurso.
+  findUserByIdUnscoped(id: string) {
+    return this.prisma.user.findUnique({ where: { id }, include: { tenant: true } });
+  }
+
   async createTenantWithOwner(input: {
     restaurantName: string;
     ownerName: string;

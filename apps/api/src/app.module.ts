@@ -1,5 +1,6 @@
 import { type MiddlewareConsumer, Module, type NestModule } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD } from "@nestjs/core";
+import { ThrottlerModule } from "@nestjs/throttler";
 import { LoggerModule } from "nestjs-pino";
 import { env } from "@/config/env";
 import { AllExceptionsFilter } from "@/common/all-exceptions.filter";
@@ -9,6 +10,7 @@ import { PrismaModule } from "@/prisma/prisma.module";
 import { AuthModule } from "@/auth/auth.module";
 import { JwtAuthGuard } from "@/auth/jwt-auth.guard";
 import { RolesGuard } from "@/auth/roles.guard";
+import { AppThrottlerGuard } from "@/auth/tenant.throttler.guard";
 
 @Module({
   imports: [
@@ -29,12 +31,16 @@ import { RolesGuard } from "@/auth/roles.guard";
         },
       },
     }),
+    ThrottlerModule.forRoot({ throttlers: [{ name: "default", ttl: 60_000, limit: 100 }] }),
     PrismaModule,
     AuthModule,
   ],
   controllers: [HealthController],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
+    // O throttler vem antes dos guards de auth: bloquear força bruta não deve custar
+    // uma verificação de token.
+    { provide: APP_GUARD, useClass: AppThrottlerGuard },
     // A ordem importa: autenticação primeiro, senão o RolesGuard roda sem req.user.
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
