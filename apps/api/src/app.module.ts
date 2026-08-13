@@ -5,6 +5,7 @@ import { env } from "@/config/env";
 import { AllExceptionsFilter } from "@/common/all-exceptions.filter";
 import { CorrelationMiddleware } from "@/common/correlation.middleware";
 import { HealthController } from "@/health/health.controller";
+import { PrismaModule } from "@/prisma/prisma.module";
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { HealthController } from "@/health/health.controller";
         },
       },
     }),
+    PrismaModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],
