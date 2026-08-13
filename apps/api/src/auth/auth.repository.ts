@@ -92,6 +92,15 @@ export class AuthRepository {
     });
   }
 
+  // Escopo de tenant no WHERE, sempre: `findUnique({ id })` devolveria o usuário de
+  // qualquer tenant, e o select recorta o row para nunca vazar passwordHash.
+  findByIdScoped(tenantId: string, id: string) {
+    return this.prisma.user.findFirst({
+      where: { id, tenantId, status: "ACTIVE" },
+      select: { id: true, name: true, role: true, tenantId: true },
+    });
+  }
+
   markLogin(userId: string) {
     return this.prisma.user.update({ where: { id: userId }, data: { lastLoginAt: new Date() } });
   }

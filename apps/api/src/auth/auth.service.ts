@@ -141,6 +141,14 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
+  async me(userId: string, tenantId: string) {
+    // Escopo de tenant mesmo aqui: o token traz os dois, e os dois precisam bater. Sem o
+    // tenantId no WHERE, um token cujo tenant mudou continuaria devolvendo o usuário.
+    const user = await this.repo.findByIdScoped(tenantId, userId);
+    if (!user) throw new AppError("AUTH_001", "Sessão inválida", 401);
+    return { id: user.id, name: user.name, role: user.role, tenantId: user.tenantId };
+  }
+
   async logout(userId: string) {
     await this.tokens.revokeFamilyByUser(userId);
   }

@@ -165,6 +165,26 @@ describe("auth session", () => {
       .expect(401);
   });
 
+  it("returns the current user from the token", async () => {
+    const user = await seedUser();
+    const login = await request(app.getHttpServer())
+      .post("/auth/login")
+      .send({ email: "ze@bar.com", password: PASSWORD })
+      .expect(200);
+
+    const me = await request(app.getHttpServer())
+      .get("/auth/me")
+      .set("authorization", `Bearer ${login.body.accessToken}`)
+      .expect(200);
+
+    expect(me.body).toEqual({
+      id: user.id,
+      name: user.name,
+      role: "OWNER",
+      tenantId: user.tenantId,
+    });
+  });
+
   it("rate limits repeated login attempts with 429", async () => {
     await seedUser();
     const attempt = () =>

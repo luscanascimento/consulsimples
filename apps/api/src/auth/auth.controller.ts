@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Ip, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Ip, Post } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import {
   forgotPasswordSchema,
@@ -72,6 +72,12 @@ export class AuthController {
   @Post("reset-password")
   resetPassword(@Body(new ZodValidationPipe(resetPasswordSchema)) dto: ResetPasswordInput) {
     return this.auth.resetPassword(dto.token, dto.password);
+  }
+
+  // Quem é o portador do token quem responde é a API: o BFF não decodifica JWT.
+  @Get("me")
+  me(@CurrentUser() user: AuthUser) {
+    return this.auth.me(user.sub, user.tenantId);
   }
 
   @HttpCode(204)

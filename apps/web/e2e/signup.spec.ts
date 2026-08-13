@@ -10,7 +10,9 @@ test.describe("signup", () => {
     await page.getByRole("button", { name: "Criar conta" }).click();
 
     await expect(page).toHaveURL(/\/cadastrar/);
-    await expect(page.getByRole("alert").first()).toBeVisible();
+    // Recortado no <main>: o overlay de desenvolvimento do Next injeta um role="alert"
+    // vazio fora dele, e sem o recorte o teste passaria olhando para o alerta errado.
+    await expect(page.locator("main").getByRole("alert").first()).toBeVisible();
   });
 
   test("links each error message to its input", async ({ page }) => {

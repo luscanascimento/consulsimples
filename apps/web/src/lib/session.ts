@@ -31,6 +31,9 @@ export async function setSession(tokens: Session): Promise<void> {
 
 export async function clearSession(): Promise<void> {
   const jar = await cookies();
-  jar.delete(ACCESS);
-  jar.delete(REFRESH);
+  // `jar.delete(nome)` emite um Set-Cookie sem Secure, e o navegador RECUSA qualquer
+  // Set-Cookie com prefixo __Host- que não traga Secure e Path=/ — o cookie sobreviveria
+  // ao logout. Sobrescrever com os mesmos atributos e maxAge 0 é o que apaga de verdade.
+  jar.set(ACCESS, "", { ...base, maxAge: 0 });
+  jar.set(REFRESH, "", { ...base, maxAge: 0 });
 }

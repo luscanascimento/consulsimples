@@ -6,7 +6,8 @@
     "dev": "node --env-file-if-exists=.env node_modules/@nestjs/cli/bin/nest.js start --watch",
     "lint": "eslint src test --max-warnings 0",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "e2e:activate-tenant": "node --env-file-if-exists=.env scripts/activate-tenant.ts"
   },
   "dependencies": {
     "@consusimples/validation": "workspace:*",
