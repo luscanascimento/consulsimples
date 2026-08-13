@@ -1,11 +1,14 @@
 import { type MiddlewareConsumer, Module, type NestModule } from "@nestjs/common";
-import { APP_FILTER } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { LoggerModule } from "nestjs-pino";
 import { env } from "@/config/env";
 import { AllExceptionsFilter } from "@/common/all-exceptions.filter";
 import { CorrelationMiddleware } from "@/common/correlation.middleware";
 import { HealthController } from "@/health/health.controller";
 import { PrismaModule } from "@/prisma/prisma.module";
+import { AuthModule } from "@/auth/auth.module";
+import { JwtAuthGuard } from "@/auth/jwt-auth.guard";
+import { RolesGuard } from "@/auth/roles.guard";
 
 @Module({
   imports: [
@@ -27,9 +30,15 @@ import { PrismaModule } from "@/prisma/prisma.module";
       },
     }),
     PrismaModule,
+    AuthModule,
   ],
   controllers: [HealthController],
-  providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],
+  providers: [
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
+    // A ordem importa: autenticação primeiro, senão o RolesGuard roda sem req.user.
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
