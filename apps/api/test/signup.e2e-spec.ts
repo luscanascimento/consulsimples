@@ -50,14 +50,16 @@ describe("POST /auth/signup", () => {
   };
 
   it("creates tenant and owner in a single transaction", async () => {
-    const res = await request(app.getHttpServer()).post("/auth/signup").send(payload).expect(201);
-
-    const tenant = await prisma.tenant.findUniqueOrThrow({ where: { id: res.body.tenantId } });
-    expect(tenant.status).toBe("PENDING_VERIFICATION");
+    // A resposta não devolve id nenhum: seria a diferença que denuncia se a conta já existia.
+    await request(app.getHttpServer())
+      .post("/auth/signup")
+      .send(payload)
+      .expect(201, { ok: true });
 
     const user = await prisma.user.findUniqueOrThrow({ where: { email: "ze@bar.com" } });
+    const tenant = await prisma.tenant.findUniqueOrThrow({ where: { id: user.tenantId } });
+    expect(tenant.status).toBe("PENDING_VERIFICATION");
     expect(user.role).toBe("OWNER");
-    expect(user.tenantId).toBe(tenant.id);
     expect(user.passwordHash).not.toBe(payload.password);
   });
 
@@ -75,11 +77,18 @@ describe("POST /auth/signup", () => {
     expect(row.tokenHash).not.toBe(rawToken);
   });
 
-  it("rejects a duplicated email without leaking that it exists", async () => {
+  it("swallows a duplicated email without leaking that it exists", async () => {
     await request(app.getHttpServer()).post("/auth/signup").send(payload).expect(201);
-    const res = await request(app.getHttpServer()).post("/auth/signup").send(payload).expect(409);
-    expect(res.body.error.code).toBe("AUTH_004");
-    expect(await prisma.tenant.count()).toBe(1); // nada meio-criado
+    // Mesmo status e mesmo corpo do cadastro que deu certo: para quem varre uma lista de
+    // emails, as duas respostas são a mesma resposta.
+    await request(app.getHttpServer())
+      .post("/auth/signup")
+      .send(payload)
+      .expect(201, { ok: true });
+
+    expect(await prisma.tenant.count()).toBe(1); // e nada foi criado do lado de cá
+    expect(await prisma.user.count()).toBe(1);
+    expect(mailer.sent).toHaveLength(1); // nem email para o dono da conta original
   });
 
   it("rejects a password shorter than 12 characters with VALIDATION_001", async () => {
@@ -98,7 +107,7 @@ describe("POST /auth/signup", () => {
   });
 
   it("activates the tenant when the verification token is used", async () => {
-    const res = await request(app.getHttpServer()).post("/auth/signup").send(payload).expect(201);
+    await request(app.getHttpServer()).post("/auth/signup").send(payload).expect(201);
     const token = new URL(mailer.sent[0]!.link).searchParams.get("token")!;
 
     await request(app.getHttpServer())
@@ -106,7 +115,8 @@ describe("POST /auth/signup", () => {
       .send({ token })
       .expect(200, { ok: true });
 
-    const tenant = await prisma.tenant.findUniqueOrThrow({ where: { id: res.body.tenantId } });
+    const user = await prisma.user.findUniqueOrThrow({ where: { email: "ze@bar.com" } });
+    const tenant = await prisma.tenant.findUniqueOrThrow({ where: { id: user.tenantId } });
     expect(tenant.status).toBe("ACTIVE");
   });
 

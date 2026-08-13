@@ -80,7 +80,14 @@ export class AuthRepository {
       });
       if (count === 0) return null;
 
-      await tx.tenant.update({ where: { id: row.user.tenantId }, data: { status: "ACTIVE" } });
+      // updateMany com status: confirmar email é PENDING_VERIFICATION -> ACTIVE e nada mais.
+      // Um `update` cru transformaria o link de 24h num botão de reativar tenant: quem foi
+      // SUSPENDED volta sozinho, desfazendo a decisão do operador. Fora desse estado o token
+      // é consumido (uso único continua valendo) e o tenant fica como está.
+      await tx.tenant.updateMany({
+        where: { id: row.user.tenantId, status: "PENDING_VERIFICATION" },
+        data: { status: "ACTIVE" },
+      });
       return row.user;
     });
   }

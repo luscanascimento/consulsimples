@@ -23,13 +23,37 @@ export class AuthService {
     @Inject(MAILER) private readonly mailer: Mailer,
   ) {}
 
-  async signup(input: SignupInput): Promise<{ tenantId: string }> {
-    const existing = await this.repo.findUserByEmailUnscoped(input.email);
-    if (existing) throw new AppError("AUTH_004", "Não foi possível concluir o cadastro", 409);
+  // Falar com o provedor de email é rede: centenas de ms. Esperar o envio DENTRO da
+  // requisição faz o tempo de resposta contar o que o corpo esconde — o caminho que não
+  // manda email volta na hora, e a diferença enumera conta igual a um 409. Além disso,
+  // falha de envio não pode virar 500 depois do commit: o email já ficaria preso no banco,
+  // sem conta utilizável. O erro vai para o log estruturado com o userId, que é do que o
+  // operador precisa para reenviar.
+  private sendInBackground(sending: Promise<void>, ctx: Record<string, unknown>) {
+    void sending.catch((err: unknown) =>
+      this.logger.error({ ...ctx, err }, "email delivery failed"),
+    );
+  }
 
+  // Resposta idêntica exista ou não a conta — mesmo status, mesmo corpo. Devolver 409 (ou
+  // o tenantId de quem acabou de nascer) transforma o signup público num oráculo: quem varre
+  // uma lista de emails descobre em qual deles existe conta. Quem tentou não fica sabendo de
+  // nada; quem já tem conta recebe o email de sempre — nenhum.
+  async signup(input: SignupInput): Promise<{ ok: true }> {
+    // Hash primeiro e nos DOIS caminhos: argon2id é o custo dominante da rota. Gastá-lo só
+    // quando o email é novo devolve pelo tempo de resposta o que o corpo não devolve.
     const passwordHash = await this.passwords.hash(input.password);
-    const rawToken = randomBytes(32).toString("base64url");
 
+    const existing = await this.repo.findUserByEmailUnscoped(input.email);
+    if (existing) {
+      this.logger.warn(
+        { event: "signup_duplicate_email", email: maskEmail(input.email) },
+        "signup attempt for existing email",
+      );
+      return { ok: true };
+    }
+
+    const rawToken = randomBytes(32).toString("base64url");
     const { tenant, user } = await this.repo.createTenantWithOwner({
       restaurantName: input.restaurantName,
       ownerName: input.ownerName,
@@ -39,16 +63,19 @@ export class AuthService {
       verificationExpiresAt: new Date(Date.now() + VERIFICATION_TTL_MS),
     });
 
-    await this.mailer.sendEmailVerification(
-      user.email,
-      `${env.WEB_BASE_URL}/verificar-email?token=${rawToken}`,
+    this.sendInBackground(
+      this.mailer.sendEmailVerification(
+        user.email,
+        `${env.WEB_BASE_URL}/verificar-email?token=${rawToken}`,
+      ),
+      { event: "verification_email_failed", userId: user.id, tenantId: tenant.id },
     );
 
     this.logger.log(
       { event: "signup", tenantId: tenant.id, userId: user.id, email: maskEmail(user.email) },
       "tenant created",
     );
-    return { tenantId: tenant.id };
+    return { ok: true };
   }
 
   async verifyEmail(token: string): Promise<{ ok: true }> {
@@ -130,9 +157,12 @@ export class AuthService {
         createHash("sha256").update(rawToken).digest("hex"),
         new Date(Date.now() + RESET_TTL_MS),
       );
-      await this.mailer.sendPasswordReset(
-        user.email,
-        `${env.WEB_BASE_URL}/redefinir-senha?token=${rawToken}`,
+      this.sendInBackground(
+        this.mailer.sendPasswordReset(
+          user.email,
+          `${env.WEB_BASE_URL}/redefinir-senha?token=${rawToken}`,
+        ),
+        { event: "password_reset_email_failed", userId: user.id, tenantId: user.tenantId },
       );
       this.logger.log(
         { event: "password_reset_requested", userId: user.id, tenantId: user.tenantId },
