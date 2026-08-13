@@ -41,7 +41,9 @@ export function Modal({
           ✕
         </button>
       </div>
-      <div className="p-4">{children}</div>
+      {/* Conteúdo só existe enquanto aberto: <dialog> fechado continua no DOM, e dois
+          formulários escondidos duplicariam id de campo e label na mesma página. */}
+      <div className="p-4">{open && children}</div>
     </dialog>
   );
 }

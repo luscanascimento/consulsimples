@@ -12,6 +12,7 @@ import { JwtAuthGuard } from "@/auth/jwt-auth.guard";
 import { RolesGuard } from "@/auth/roles.guard";
 import { AppThrottlerGuard } from "@/auth/tenant.throttler.guard";
 import { CatalogModule } from "@/catalog/catalog.module";
+import { TenantModule } from "@/tenant/tenant.module";
 import { UsersModule } from "@/users/users.module";
 
 @Module({
@@ -37,6 +38,7 @@ import { UsersModule } from "@/users/users.module";
     PrismaModule,
     AuthModule,
     CatalogModule,
+    TenantModule,
     UsersModule,
   ],
   controllers: [HealthController],
