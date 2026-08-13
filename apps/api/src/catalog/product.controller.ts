@@ -25,8 +25,13 @@ import { ProductService } from "./product.service";
 export class ProductController {
   constructor(private readonly service: ProductService) {}
 
+  // ParseUUIDPipe no filtro também: sem ele o valor cru chega no WHERE e o Postgres
+  // derruba a requisição com 500 em vez de 400.
   @Get()
-  list(@CurrentUser() user: AuthUser, @Query("categoryId") categoryId?: string) {
+  list(
+    @CurrentUser() user: AuthUser,
+    @Query("categoryId", new ParseUUIDPipe({ optional: true })) categoryId?: string,
+  ) {
     return this.service.list({ tenantId: user.tenantId }, categoryId);
   }
 

@@ -1,5 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
+import { ThrottlerStorage, type ThrottlerStorageService } from "@nestjs/throttler";
 import request from "supertest";
 import { AppModule } from "@/app.module";
 import { MAILER, type Mailer } from "@/mail/mailer.port";
@@ -32,6 +33,9 @@ describe("POST /auth/signup", () => {
   beforeEach(async () => {
     await resetDb();
     mailer.sent = [];
+    // /auth/signup aceita 3 por hora por IP e a suíte inteira sai do mesmo IP:
+    // sem zerar, do quarto cadastro em diante a resposta seria 429.
+    app.get<ThrottlerStorageService>(ThrottlerStorage).storage.clear();
   });
   afterAll(async () => {
     await app.close();

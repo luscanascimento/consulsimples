@@ -19,11 +19,17 @@ import { ZodValidationPipe } from "@/common/zod-validation.pipe";
 import { AuthService } from "./auth.service";
 import type { AuthUser } from "./token.service";
 
+// Rotas que MANDAM email para um endereço escolhido pelo cliente contam por IP puro.
+// O tracker padrão mistura o email do corpo, e aí trocar de email a cada request zera o
+// contador: um IP dispara email ilimitado em nome do produto.
+const byIp = (req: { ip?: string }) => req.ip ?? "unknown";
+
 @Controller("auth")
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Public()
+  @Throttle({ default: { ttl: 3_600_000, limit: 3, getTracker: byIp } })
   @Post("signup")
   signup(@Body(new ZodValidationPipe(signupSchema)) dto: SignupInput) {
     return this.auth.signup(dto);
@@ -53,7 +59,7 @@ export class AuthController {
   }
 
   @Public()
-  @Throttle({ default: { ttl: 3_600_000, limit: 3 } })
+  @Throttle({ default: { ttl: 3_600_000, limit: 3, getTracker: byIp } })
   @HttpCode(202)
   @Post("forgot-password")
   forgotPassword(@Body(new ZodValidationPipe(forgotPasswordSchema)) dto: ForgotPasswordInput) {
