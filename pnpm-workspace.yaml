@@ -9,3 +9,7 @@ allowBuilds:
   prisma: true
   argon2: true
   esbuild: true
+  # Binários nativos que o Next precisa: sharp otimiza imagem no build, unrs-resolver
+  # resolve os imports no eslint-config-next.
+  sharp: true
+  unrs-resolver: true

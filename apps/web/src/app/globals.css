@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+/* Foco visível em tudo que recebe foco. Remover outline sem repor é regressão
+   de acessibilidade, não escolha de estilo. */
+:focus-visible {
+  outline: 2px solid theme(colors.sky.600);
+  outline-offset: 2px;
+}
