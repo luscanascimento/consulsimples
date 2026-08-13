@@ -11,6 +11,7 @@ import { AuthModule } from "@/auth/auth.module";
 import { JwtAuthGuard } from "@/auth/jwt-auth.guard";
 import { RolesGuard } from "@/auth/roles.guard";
 import { AppThrottlerGuard } from "@/auth/tenant.throttler.guard";
+import { CatalogModule } from "@/catalog/catalog.module";
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { AppThrottlerGuard } from "@/auth/tenant.throttler.guard";
     ThrottlerModule.forRoot({ throttlers: [{ name: "default", ttl: 60_000, limit: 100 }] }),
     PrismaModule,
     AuthModule,
+    CatalogModule,
   ],
   controllers: [HealthController],
   providers: [

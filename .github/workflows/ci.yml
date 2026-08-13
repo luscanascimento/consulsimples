@@ -30,6 +30,9 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm turbo lint typecheck test build
+      # Gate dedicado: vazamento entre tenants derruba o merge, com nome visível no check.
+      - name: tenant isolation gate
+        run: pnpm --filter @consusimples/api test -- tenant-isolation.e2e
       - run: pnpm --filter @consusimples/api exec prisma migrate status
       - run: |
           pnpm --filter @consusimples/api exec prisma migrate diff \
