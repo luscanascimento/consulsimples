@@ -23,4 +23,19 @@ export class ResendMailer implements Mailer {
       throw error;
     }
   }
+
+  async sendPasswordReset(to: string, link: string): Promise<void> {
+    const { error } = await this.client.emails.send({
+      from: env.MAIL_FROM,
+      to,
+      subject: "Redefinir senha — consusimples",
+      html: `<p>Alguém pediu para redefinir a senha desta conta.</p>
+             <p><a href="${link}">Criar uma nova senha</a></p>
+             <p>O link vale por 1 hora. Se não foi você, ignore este email.</p>`,
+    });
+    if (error) {
+      this.logger.error({ to: to.replace(/(.).*(@.*)/, "$1***$2") }, "password reset email failed");
+      throw error;
+    }
+  }
 }

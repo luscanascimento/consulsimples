@@ -10,6 +10,10 @@ class FakeMailer implements Mailer {
   async sendEmailVerification(to: string, link: string) {
     this.sent.push({ to, link });
   }
+  // Signup não dispara reset de senha: se disparar, o toHaveLength do teste acusa.
+  async sendPasswordReset(to: string, link: string) {
+    this.sent.push({ to, link });
+  }
 }
 
 describe("POST /auth/signup", () => {

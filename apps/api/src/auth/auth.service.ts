@@ -9,6 +9,7 @@ import { PasswordService } from "./password.service";
 import { TokenService, type AuthUser } from "./token.service";
 
 const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
+const RESET_TTL_MS = 60 * 60 * 1000;
 const maskEmail = (e: string) => e.replace(/(.).*(@.*)/, "$1***$2");
 
 @Injectable()
@@ -115,5 +116,47 @@ export class AuthService {
 
   async logout(userId: string) {
     await this.tokens.revokeFamilyByUser(userId);
+  }
+
+  async forgotPassword(email: string): Promise<{ ok: true }> {
+    const user = await this.repo.findUserByEmailUnscoped(email);
+
+    // Resposta idêntica exista ou não a conta: qualquer diferença — corpo, status
+    // ou tempo perceptível — vira oráculo de enumeração de email.
+    if (user && user.status === "ACTIVE") {
+      const rawToken = randomBytes(32).toString("base64url");
+      await this.repo.createPasswordResetToken(
+        user.id,
+        createHash("sha256").update(rawToken).digest("hex"),
+        new Date(Date.now() + RESET_TTL_MS),
+      );
+      await this.mailer.sendPasswordReset(
+        user.email,
+        `${env.WEB_BASE_URL}/redefinir-senha?token=${rawToken}`,
+      );
+      this.logger.log(
+        { event: "password_reset_requested", userId: user.id, tenantId: user.tenantId },
+        "password reset requested",
+      );
+    } else {
+      this.logger.warn(
+        { event: "password_reset_unknown_email", email: maskEmail(email) },
+        "password reset for unknown email",
+      );
+    }
+
+    return { ok: true };
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<{ ok: true }> {
+    const passwordHash = await this.passwords.hash(newPassword);
+    const userId = await this.repo.consumePasswordResetToken(token, passwordHash);
+    if (!userId) throw new AppError("AUTH_005", "Link inválido ou expirado", 400);
+
+    // Troca de senha derruba toda sessão aberta: é a única forma de expulsar
+    // quem já estava dentro com a senha antiga.
+    await this.tokens.revokeFamilyByUser(userId);
+    this.logger.log({ event: "password_reset", userId }, "password reset");
+    return { ok: true };
   }
 }

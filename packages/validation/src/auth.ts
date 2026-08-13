@@ -22,3 +22,11 @@ export type LoginInput = z.infer<typeof loginSchema>;
 
 export const refreshSchema = z.object({ refreshToken: z.string().min(10).max(200) }).strict();
 export type RefreshInput = z.infer<typeof refreshSchema>;
+
+export const forgotPasswordSchema = z.object({ email }).strict();
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z
+  .object({ token: z.string().min(10).max(200), password })
+  .strict();
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

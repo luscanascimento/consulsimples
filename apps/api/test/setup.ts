@@ -12,6 +12,7 @@ export async function resetDb() {
   // Ordem: filhos antes dos pais. Cascade tornaria isso desnecessário, mas explícito é auditável.
   await prisma.$transaction([
     prisma.emailVerificationToken.deleteMany(),
+    prisma.passwordResetToken.deleteMany(),
     prisma.refreshToken.deleteMany(),
     prisma.product.deleteMany(),
     prisma.category.deleteMany(),

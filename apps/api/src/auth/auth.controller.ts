@@ -1,12 +1,16 @@
 import { Body, Controller, HttpCode, Ip, Post } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import {
+  forgotPasswordSchema,
   loginSchema,
   refreshSchema,
+  resetPasswordSchema,
   signupSchema,
   verifyEmailSchema,
+  type ForgotPasswordInput,
   type LoginInput,
   type RefreshInput,
+  type ResetPasswordInput,
   type SignupInput,
   type VerifyEmailInput,
 } from "@consusimples/validation";
@@ -46,6 +50,22 @@ export class AuthController {
   @Post("refresh")
   refresh(@Body(new ZodValidationPipe(refreshSchema)) dto: RefreshInput) {
     return this.auth.refresh(dto.refreshToken);
+  }
+
+  @Public()
+  @Throttle({ default: { ttl: 3_600_000, limit: 3 } })
+  @HttpCode(202)
+  @Post("forgot-password")
+  forgotPassword(@Body(new ZodValidationPipe(forgotPasswordSchema)) dto: ForgotPasswordInput) {
+    return this.auth.forgotPassword(dto.email);
+  }
+
+  @Public()
+  @Throttle({ default: { ttl: 3_600_000, limit: 10 } })
+  @HttpCode(200)
+  @Post("reset-password")
+  resetPassword(@Body(new ZodValidationPipe(resetPasswordSchema)) dto: ResetPasswordInput) {
+    return this.auth.resetPassword(dto.token, dto.password);
   }
 
   @HttpCode(204)

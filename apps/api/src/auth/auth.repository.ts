@@ -89,6 +89,36 @@ export class AuthRepository {
     return this.prisma.user.update({ where: { id: userId }, data: { lastLoginAt: new Date() } });
   }
 
+  createPasswordResetToken(userId: string, tokenHash: string, expiresAt: Date) {
+    return this.prisma.passwordResetToken.create({ data: { userId, tokenHash, expiresAt } });
+  }
+
+  async consumePasswordResetToken(rawToken: string, newPasswordHash: string) {
+    const tokenHash = createHash("sha256").update(rawToken).digest("hex");
+    return this.prisma.$transaction(async (tx) => {
+      const row = await tx.passwordResetToken.findUnique({ where: { tokenHash } });
+      if (!row || row.usedAt || row.expiresAt <= new Date()) return null;
+
+      // updateMany com usedAt: null — dois envios simultâneos, só um consome.
+      const { count } = await tx.passwordResetToken.updateMany({
+        where: { id: row.id, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+      if (count === 0) return null;
+
+      await tx.user.update({
+        where: { id: row.userId },
+        data: { passwordHash: newPasswordHash },
+      });
+      // Qualquer outro link de reset pendente morre junto.
+      await tx.passwordResetToken.updateMany({
+        where: { userId: row.userId, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+      return row.userId;
+    });
+  }
+
   updatePasswordHash(userId: string, passwordHash: string) {
     return this.prisma.user.update({ where: { id: userId }, data: { passwordHash } });
   }
