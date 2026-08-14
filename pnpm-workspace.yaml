@@ -13,3 +13,11 @@ allowBuilds:
   # resolve os imports no eslint-config-next.
   sharp: true
   unrs-resolver: true
+
+# O `next` 15.5.23 (última do 15.x) prende `postcss` e `sharp` em versões com aviso alto no
+# `pnpm audit`, que é gate de CI. Subir para o `next` 16 é major e não cabe aqui; estes
+# overrides levam as duas transitivas para a versão corrigida sem trocar o framework.
+# Revisar quando o projeto migrar para o next 16 — aí provavelmente ficam desnecessários.
+overrides:
+  postcss@<8.5.18: ">=8.5.18"
+  sharp@<0.35.0: ">=0.35.0"
