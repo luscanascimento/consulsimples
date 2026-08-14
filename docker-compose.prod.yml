@@ -1,0 +1,54 @@
+services:
+  migrate:
+    image: consusimples-api:${GIT_SHA}
+    # Migration é passo separado, nunca no entrypoint da app: duas réplicas subindo
+    # ao mesmo tempo migrariam em paralelo.
+    command:
+      ["apps/api/node_modules/.bin/prisma", "migrate", "deploy", "--schema", "apps/api/prisma/schema.prisma"]
+    env_file: [.env]
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+  api:
+    image: consusimples-api:${GIT_SHA}
+    env_file: [.env]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      postgres: { condition: service_healthy }
+    ports: ["127.0.0.1:3001:3001"] # só o proxy da VPS alcança; nada exposto na internet
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits: { memory: 512M }
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" } # rotação: log sem teto enche o disco da VPS
+
+  postgres:
+    image: postgres:17-alpine
+    # Só as três variáveis do banco, nunca `env_file`: o container do Postgres não precisa
+    # ver JWT_*_SECRET nem RESEND_API_KEY. Os valores vêm do mesmo .env por interpolação.
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER no .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: ${POSTGRES_DB:?defina POSTGRES_DB no .env}
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits: { memory: 1G }
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+volumes:
+  pgdata:

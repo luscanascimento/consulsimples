@@ -1,0 +1,14 @@
+# Contexto do build é a raiz do monorepo: com context na raiz, o Docker só lê o
+# .dockerignore ao lado do Dockerfile (convenção do BuildKit), não apps/api/.dockerignore.
+# Padrão sem `**/` casa só na raiz do contexto — daí o prefixo em tudo.
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+.git
+**/.env
+**/.env.*
+**/*.log
+**/coverage
+**/test-results
+**/playwright-report
