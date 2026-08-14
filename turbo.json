@@ -1,8 +1,14 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
-    "build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
-    "typecheck": { "dependsOn": ["^build"] },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    // `build` do próprio pacote, não só `^build`: o tsconfig do web inclui
+    // `.next/types/**/*.ts`, que o `next build` reescreve. Em paralelo o tsc lia arquivo
+    // que o build acabara de apagar e quebrava com TS6053.
+    "typecheck": { "dependsOn": ["^build", "build"] },
     "test": { "dependsOn": ["^build"] },
     "lint": {},
     "dev": { "cache": false, "persistent": true }
