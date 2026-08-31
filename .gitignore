@@ -3,9 +3,11 @@ dist/
 .next/
 .turbo/
 .env
-.env.local
+.env.*
+!.env.example
 coverage/
 test-results/
 playwright-report/
 *.log
 *.tsbuildinfo
+.DS_Store
