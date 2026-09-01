@@ -2,12 +2,12 @@ import { z } from "zod";
 
 // Mínimo 12 caracteres. Comprimento vence composição obrigatória de caracteres especiais.
 const password = z.string().min(12).max(1024);
-const email = z.string().email().max(254).toLowerCase().trim();
+const email = z.string().trim().toLowerCase().email().max(254);
 
 export const signupSchema = z
   .object({
-    restaurantName: z.string().min(2).max(120).trim(),
-    ownerName: z.string().min(2).max(120).trim(),
+    restaurantName: z.string().trim().min(2).max(120),
+    ownerName: z.string().trim().min(2).max(120),
     email,
     password,
   })

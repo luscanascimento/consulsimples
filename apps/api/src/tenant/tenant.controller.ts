@@ -1,25 +1,29 @@
-import { Body, Controller, Patch } from "@nestjs/common";
-import { z } from "zod";
+import { Body, Controller, Get, Patch } from "@nestjs/common";
+import { updateTenantSchema, type UpdateTenantInput } from "@consusimples/validation";
 import { CurrentUser, Roles } from "@/common/decorators";
 import { defined } from "@/common/defined";
 import { ZodValidationPipe } from "@/common/zod-validation.pipe";
 import type { AuthUser } from "@/auth/token.service";
 import { PrismaService } from "@/prisma/prisma.service";
 
-const updateTenantSchema = z
-  .object({ name: z.string().min(2).max(120).trim(), timezone: z.string().min(3).max(64) })
-  .partial()
-  .strict();
-
 @Roles("OWNER", "MANAGER")
 @Controller("tenant")
 export class TenantController {
   constructor(private readonly prisma: PrismaService) {}
 
+  @Get()
+  async get(@CurrentUser() user: AuthUser) {
+    // O id vem do token, garantindo escopo estrito por tenant.
+    return this.prisma.tenant.findUnique({
+      where: { id: user.tenantId },
+      select: { id: true, name: true, slug: true, timezone: true, status: true },
+    });
+  }
+
   @Patch()
   async update(
     @CurrentUser() user: AuthUser,
-    @Body(new ZodValidationPipe(updateTenantSchema)) dto: { name?: string; timezone?: string },
+    @Body(new ZodValidationPipe(updateTenantSchema)) dto: UpdateTenantInput,
   ) {
     // O id vem do token, nunca do payload: não existe caminho para editar outro tenant.
     const tenant = await this.prisma.tenant.update({
@@ -30,3 +34,4 @@ export class TenantController {
     return tenant;
   }
 }
+

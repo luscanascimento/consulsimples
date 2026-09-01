@@ -13,6 +13,7 @@ export class CategoryRepository {
     return this.prisma.category.findMany({
       where: { tenantId: scope.tenantId, active: true },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      take: 100,
       select: SELECT,
     });
   }

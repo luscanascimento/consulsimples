@@ -8,11 +8,12 @@
     "build": "tsc -p tsconfig.json",
     "lint": "eslint src --max-warnings 0",
     "typecheck": "tsc --noEmit",
-    "test": "echo no tests"
+    "test": "node --test dist/validation.spec.js"
   },
   "dependencies": { "zod": "^3.24.0" },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
+    "@types/node": "^22.10.0",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
     "eslint": "^9.17.0",

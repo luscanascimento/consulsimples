@@ -47,12 +47,13 @@ export default async function CatalogPage({
         </p>
       </header>
 
-      <div className="flex gap-6">
+      <div className="flex flex-col gap-6 lg:flex-row">
         <CategoryList categories={categories} selectedId={selected} canEdit={canEdit} />
         <div className="min-w-0 flex-1">
           <ProductTable
             products={products.filter((p) => !selected || p.categoryId === selected)}
             categoryId={selected}
+            categories={categories}
             canEdit={canEdit}
           />
         </div>
@@ -60,3 +61,4 @@ export default async function CatalogPage({
     </div>
   );
 }
+

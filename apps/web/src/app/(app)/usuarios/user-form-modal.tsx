@@ -70,28 +70,29 @@ export function UserFormModal({
           </>
         )}
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor="role" className="text-sm font-medium text-slate-700">
-            Papel
-          </label>
-          <select
-            id="role"
-            name="role"
-            defaultValue={user?.role ?? "WAITER"}
-            className="min-h-11 rounded-md border border-slate-300 px-3"
-          >
-            {ROLES.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Field
+          name="role"
+          label="Papel / Cargo"
+          options={ROLES}
+          defaultValue={user?.role ?? "WAITER"}
+          required
+          error={state.fieldErrors?.role}
+        />
 
-        <Button type="submit" pendingLabel="Salvando…">
-          Salvar
-        </Button>
+        <div className="mt-2 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-11 rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Cancelar
+          </button>
+          <Button type="submit" pendingLabel="Salvando…">
+            Salvar usuário
+          </Button>
+        </div>
       </form>
     </Modal>
   );
 }
+

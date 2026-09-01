@@ -4,8 +4,8 @@ export const userRoleSchema = z.enum(["OWNER", "MANAGER", "WAITER", "KITCHEN", "
 
 export const createUserSchema = z
   .object({
-    name: z.string().min(2).max(120).trim(),
-    email: z.string().email().max(254).toLowerCase().trim(),
+    name: z.string().trim().min(2).max(120),
+    email: z.string().trim().toLowerCase().email().max(254),
     password: z.string().min(12).max(1024),
     role: userRoleSchema,
   })
@@ -13,7 +13,7 @@ export const createUserSchema = z
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 
 export const updateUserSchema = z
-  .object({ name: z.string().min(2).max(120).trim(), role: userRoleSchema })
+  .object({ name: z.string().trim().min(2).max(120), role: userRoleSchema })
   .partial()
   .strict();
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;

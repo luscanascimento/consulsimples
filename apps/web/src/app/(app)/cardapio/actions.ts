@@ -2,6 +2,7 @@
 import { revalidatePath } from "next/cache";
 import {
   createCategorySchema,
+  updateCategorySchema,
   createProductSchema,
   updateProductSchema,
 } from "@consusimples/validation";
@@ -34,6 +35,39 @@ export async function createCategoryAction(
   }
   revalidatePath("/cardapio");
   return { ok: true };
+}
+
+export async function updateCategoryAction(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Categoria não encontrada." };
+
+  const parsed = updateCategorySchema.safeParse({
+    name: formData.get("name"),
+    sortOrder: Number(formData.get("sortOrder") ?? 0),
+  });
+  if (!parsed.success) return { fieldErrors: issuesToFields(parsed.error.issues) };
+
+  try {
+    await apiFetch(`/categories/${id}`, { method: "PATCH", body: JSON.stringify(parsed.data) });
+  } catch (e) {
+    return { error: messageFor(e) };
+  }
+  revalidatePath("/cardapio");
+  return { ok: true };
+}
+
+export async function deleteCategoryAction(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  try {
+    await apiFetch(`/categories/${id}`, { method: "DELETE" });
+  } catch {
+    /* estado real reaparece no reload */
+  }
+  revalidatePath("/cardapio");
 }
 
 export async function createProductAction(
@@ -76,11 +110,15 @@ export async function updateProductAction(
   const priceCents = parseCurrencyInput(rawPrice);
   if (priceCents === null) return { fieldErrors: { price: "Informe um valor como 23,50." } };
 
+  const categoryId = formData.get("categoryId") ? String(formData.get("categoryId")) : undefined;
+
   const parsed = updateProductSchema.safeParse({
     name: formData.get("name"),
     description: formData.get("description") || undefined,
+    categoryId,
     priceCents,
     available: formData.get("available") === "on",
+    sortOrder: Number(formData.get("sortOrder") ?? 0),
   });
   if (!parsed.success) return { fieldErrors: issuesToFields(parsed.error.issues) };
 
@@ -91,6 +129,21 @@ export async function updateProductAction(
   }
   revalidatePath("/cardapio");
   return { ok: true };
+}
+
+export async function toggleProductAvailabilityAction(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  const currentAvailable = formData.get("available") === "true";
+  if (!id) return;
+  try {
+    await apiFetch(`/products/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ available: !currentAvailable }),
+    });
+  } catch {
+    /* estado real reaparece no reload */
+  }
+  revalidatePath("/cardapio");
 }
 
 export async function deleteProductAction(formData: FormData): Promise<void> {
@@ -104,3 +157,4 @@ export async function deleteProductAction(formData: FormData): Promise<void> {
   }
   revalidatePath("/cardapio");
 }
+
